@@ -12,6 +12,6 @@ applications:
     source_ref: main
     enabled: true
     source_path: common/cadence
-    destination: prod-infra
+    destination: default
     helm_values:
       - ../../aws/dev/apps/cadence/values.yaml

@@ -12,6 +12,6 @@ applications:
     source_ref: main
     enabled: true
     source_path: aws/dev/apps
-    destination: prod-infra
+    destination: default
     helm_values:
       - values.yaml
