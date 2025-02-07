@@ -1,0 +1,16 @@
+# ArgoCD: projects-infra
+source: https://github.com/fseidler/helm-charts.git
+team: prod
+release: infra
+applications:
+# #################################################################
+#
+#  base-aws-dev
+#
+# #################################################################
+  - name: base-aws-dev
+    source_ref: master
+    enabled: true
+    source_path: aws/dev/apps
+    helm_values:
+      - values.yaml

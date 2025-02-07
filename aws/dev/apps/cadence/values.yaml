@@ -1,0 +1,87 @@
+log:
+  stdout: true
+  level: "debug"
+
+postgres:
+  endpoint: ""
+  port: ""
+  credentials:
+    username: ""
+    password: ""
+  schema:
+    version: 0.6
+    visibility_version: 0.8
+
+
+frontend:
+  port: 7933
+  grpcPort: 7833
+  replicas: 2
+  image:
+    repository: "docker.io/ubercadence/server"
+    tag: "master-auto-setup"
+  cpu:
+    limit: "500m"
+    request: "500m"
+  memory:
+    limit: "1Gi"
+    request: "1Gi"
+
+matching:
+  port: 7935
+  grpcPort: 7835
+  replicas: 3
+  image:
+    repository: "docker.io/ubercadence/server"
+    tag: "master-auto-setup"
+  cpu:
+    limit: "500m"
+    request: "500m"
+  memory:
+    limit: "1Gi"
+    request: "1Gi"
+
+history:
+  port: 7934
+  grpcPort: 7834
+  replicas: 3
+  numHistoryShards: 4000
+  image:
+    repository: "docker.io/ubercadence/server"
+    tag: "master-auto-setup"
+  cpu:
+    limit: "500m"
+    request: "500m"
+  memory:
+    limit: "1Gi"
+    request: "1Gi"
+
+worker:
+  port: 7939
+  replicas: 3
+  image:
+    repository: "docker.io/ubercadence/server"
+    tag: "master-auto-setup"
+  cpu:
+    limit: "500m"
+    request: "500m"
+  memory:
+    limit: "1Gi"
+    request: "1Gi"
+
+web:
+  replicas: 1
+  image:
+    repository: "docker.io/ubercadence/web"
+    tag: "latest"
+  cpu:
+    limit: "500m"
+    request: "500m"
+  memory:
+    limit: "1Gi"
+    request: "1Gi"
+
+dynamicConfig:
+  values:
+    history.workflowIDExternalRateLimitEnabled:
+      - value: true

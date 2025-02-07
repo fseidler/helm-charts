@@ -1,0 +1,75 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: cadence-schema-setup
+  labels:
+    {{- include "cadence.commonlabels" . | nindent 4 }}
+spec:
+  backoffLimit: 4
+  template:
+    metadata:
+      name: cadence-schema-setup
+    spec:
+      restartPolicy: "OnFailure"
+      initContainers:
+        # Check Postgres DNS resolution using busybox
+        - name: check-postgres-dns
+          image: busybox
+          command: [ 'sh', '-c', '
+            until nslookup  {{ include "postgres.endpoint" . }}; do
+              echo "Waiting for Postgres service DNS resolution...";
+              sleep 5;
+            done;
+            echo "Postgres service DNS resolved.";
+          ' ]
+        # Check Postgres readiness using cqlsh
+        - name: check-postgres-ready
+          image: {{ .Values.history.image.repository }}:{{ .Values.history.image.tag }}
+          imagePullPolicy: Always
+          command: [ 'sh', '-c', '
+            apk --update add postgresql-client &&
+            until psql -w -h $SQL_HOST_ADDR -p $SQL_HOST_PORT -U $PGUSER -d postgres -c "SELECT 1;"; do
+              echo "Waiting for Postgres to start...";
+              sleep 30;
+            done;
+            echo "Postgres is up and running.";
+          ' ]
+          env:
+            - name: SQL_HOST_ADDR
+              value: {{ include "postgres.endpoint" . }}
+            - name: SQL_HOST_PORT
+              value: "{{ include "postgres.port" . }}"
+            - name: PGUSER
+              value: {{ include "postgres.credentials.username" . }}
+            - name: PGPASSWORD
+              value: {{ include "postgres.credentials.password" . }}
+      containers:
+        - name: schema-setup
+          image: {{ .Values.history.image.repository }}:{{ .Values.history.image.tag }}
+          imagePullPolicy: Always
+          env:
+            - name: PGUSER
+              value: {{ include "postgres.credentials.username" . }}
+            - name: PGPASSWORD
+              value: {{ include "postgres.credentials.password" . }}
+            - name: SQL_HOST_ADDR
+              value: {{ include "postgres.endpoint" . }}
+            - name: SQL_HOST_PORT
+              value: "{{ include "postgres.port" . }}"
+            - name: KEYSPACE
+              value: cadence
+            - name: VISIBILITY_KEYSPACE
+              value: cadence_visibility
+            - name: CADENCE_HOME
+              value: /etc/cadence
+          args: [ 'sh', '-c', '
+            SCHEMA_DIR=$CADENCE_HOME/schema/postgres/cadence/versioned;
+            cadence-sql-tool --endpoint $SQL_HOST_ADDR --port $SQL_HOST_PORT --user $PGUSER --password $PGPASSWORD --plugin postgres create-database --db cadence;
+            cadence-sql-tool --endpoint $SQL_HOST_ADDR --port $SQL_HOST_PORT --user $PGUSER --password $PGPASSWORD --plugin postgres --db cadence setup-schema -v 0.0;
+            cadence-sql-tool --endpoint $SQL_HOST_ADDR --port $SQL_HOST_PORT --user $PGUSER --password $PGPASSWORD --plugin postgres --db cadence update-schema -d $SCHEMA_DIR;
+
+            VISIBILITY_SCHEMA_DIR=$CADENCE_HOME/schema/postgres/visibility/versioned;
+            cadence-sql-tool --endpoint $SQL_HOST_ADDR --port $SQL_HOST_PORT --user $PGUSER --password $PGPASSWORD --plugin postgres create-database --db cadence_visibility;
+            cadence-sql-tool --endpoint $SQL_HOST_ADDR --port $SQL_HOST_PORT --user $PGUSER --password $PGPASSWORD --plugin postgres --db cadence_visibility setup-schema -v 0.0;
+            cadence-sql-tool --endpoint $SQL_HOST_ADDR --port $SQL_HOST_PORT --user $PGUSER --password $PGPASSWORD --plugin postgres --db cadence_visibility update-schema -d $VISIBILITY_SCHEMA_DIR;
+          ' ]

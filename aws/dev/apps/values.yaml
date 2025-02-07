@@ -1,0 +1,16 @@
+# ArgoCD: projects-infra
+source: https://github.com/fseidler/helm-charts.git
+team: prod
+release: infra
+applications:
+# #################################################################
+#
+#  base-aws-dev
+#
+# #################################################################
+  - name: base-aws-dev-cadence
+    source_ref: master
+    enabled: true
+    source_path: common/cadence
+    helm_values:
+      - ../../aws/dev/apps/cadence/values.yaml

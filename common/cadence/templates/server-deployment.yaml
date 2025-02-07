@@ -1,0 +1,117 @@
+{{- $dot := . }}
+{{- range $service := (list "frontend" "history" "matching" "worker") }}
+{{- $serviceCfg := index $.Values $service -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cadence-{{ $service }}
+  labels:
+    app: cadence
+    component: {{ $service }}
+    {{- include "cadence.commonlabels" $dot | nindent 4 }}
+spec:
+  replicas: {{ $serviceCfg.replicas }}
+  selector:
+    matchLabels:
+      app: cadence
+      component: {{ $service }}
+  template:
+    metadata:
+      labels:
+        app: cadence
+        component: {{ $service }}
+    spec:
+      initContainers:
+        - name: wait-for-schema
+          image: {{ $serviceCfg.image.repository }}:{{ $serviceCfg.image.tag }}
+          imagePullPolicy: Always
+          command: [ "sh", "-c", "
+      apk --update add postgresql-client &&
+      until psql -w -h $SQL_HOST_ADDR -p $SQL_HOST_PORT -U $PGUSER -d cadence -c 'select curr_version from schema_version;' | grep -q {{ $.Values.postgres.schema.version }} &&
+      psql -w -h $SQL_HOST_ADDR -p $SQL_HOST_PORT -U $PGUSER -d cadence_visibility -c 'select curr_version from schema_version;' | grep -q {{ $.Values.postgres.schema.visibility_version }};
+      do
+        echo waiting for both cadence and cadence_visibility schema setup;
+        sleep 10;
+      done" ]
+          env:
+            - name: PGUSER
+              value: {{ include "postgres.credentials.username" $dot }}
+            - name: PGPASSWORD
+              value: {{ include "postgres.credentials.password" $dot }}
+            - name: SQL_HOST_ADDR
+              value: {{ include "postgres.endpoint" $dot }}
+            - name: SQL_HOST_PORT
+              value: "{{ include "postgres.port" $dot }}"
+      containers:
+        - name: cadence-{{ $service }}
+          image: {{ $serviceCfg.image.repository }}:{{ $serviceCfg.image.tag }}
+          imagePullPolicy: Always
+          ports:
+            - name: rpc
+              containerPort: {{ $serviceCfg.port }}
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+             {{- if ne $service "worker" }}
+            - name: grpc
+              containerPort: {{ $serviceCfg.grpcPort }}
+              protocol: TCP
+            {{- end}}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/cadence/config/dynamicconfig/config.yaml
+              subPath: dynamic_config.yaml
+          env:
+            - name: SERVICES
+              value: {{ $service }}
+            - name: BIND_ON_IP
+              value: 0.0.0.0
+            - name: BROADCAST_ADDRESS
+              valueFrom:
+                fieldRef:
+                  fieldPath: status.podIP
+            - name: DB
+              value: postgres
+            - name: DB_PORT
+              value: "{{ include "postgres.port" $dot }}"
+            - name: POSTGRES_USER
+              value: {{ include "postgres.credentials.username" $dot }}
+            - name: POSTGRES_PWD
+              value: {{ include "postgres.credentials.password" $dot }}
+            - name: POSTGRES_SEEDS
+              value: {{ include "postgres.endpoint" $dot }}
+            - name: PROMETHEUS_ENDPOINT
+              value: :9090
+            - name: DYNAMIC_CONFIG_FILE_PATH
+              value: config/dynamicconfig/development.yaml
+            - name: PRIMARY_FRONTEND_SERVICE
+              value: cadence-frontend.{{ $.Release.Namespace }}.svc.cluster.local
+            - name: LOG_LEVEL
+              value: {{ $.Values.log.level }}
+            - name: LOG_STDOUT
+              value: {{ $.Values.log.stdout | quote }}
+            - name: ENABLE_ES
+              value: "false"
+            - name: SKIP_SCHEMA_SETUP
+              value: "true"
+            - name: RINGPOP_BOOTSTRAP_MODE
+              value: dns
+            - name: RINGPOP_SEEDS
+              value: cadence-frontend-headless.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.frontend.port }},cadence-history-headless.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.history.port }},cadence-matching-headless.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.matching.port }},cadence-worker-headless.{{ $.Release.Namespace }}.svc.cluster.local:{{ $.Values.worker.port }}
+            - name: NUM_HISTORY_SHARDS
+              value: "{{ $.Values.history.numHistoryShards }}"
+
+          resources:
+            limits:
+              cpu: {{ $serviceCfg.cpu.limit }}
+              memory: {{ $serviceCfg.memory.limit }}
+            requests:
+              cpu: {{ $serviceCfg.cpu.request }}
+              memory: {{ $serviceCfg.memory.request }}
+      volumes:
+        - name: config
+          configMap:
+            name: cadence-configmap
+---
+{{- end }}
