@@ -8,7 +8,7 @@ applications:
 #  base-aws-dev
 #
 # #################################################################
-  - name: base-aws-dev
+  - name: base-aws-dev-apps
     source_ref: main
     enabled: true
     source_path: aws/dev/apps
