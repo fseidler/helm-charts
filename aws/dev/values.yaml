@@ -9,7 +9,7 @@ applications:
 #
 # #################################################################
   - name: base-aws-dev
-    source_ref: master
+    source_ref: main
     enabled: true
     source_path: aws/dev/apps
     helm_values:

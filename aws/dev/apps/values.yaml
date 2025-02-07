@@ -9,7 +9,7 @@ applications:
 #
 # #################################################################
   - name: base-aws-dev-cadence
-    source_ref: master
+    source_ref: main
     enabled: true
     source_path: common/cadence
     helm_values:
