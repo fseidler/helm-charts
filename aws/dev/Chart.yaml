@@ -1,6 +1,6 @@
 apiVersion: v2
-name: base-user-scaffold
-description: Scaffold - base-user
+name: base-aws-scaffold
+description: Scaffold - base-aws
 type: application
 version: 1.0.0
 appVersion: 1.0.0

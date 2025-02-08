@@ -1,7 +1,5 @@
 # ArgoCD: projects-infra
 source: https://github.com/fseidler/helm-charts.git
-team: prod
-release: infra
 applications:
 # #################################################################
 #
