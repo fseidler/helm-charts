@@ -11,6 +11,6 @@ applications:
     source_ref: main
     enabled: true
     source_path: aws/dev/apps
-    destination: default
+    destination: argocd
     helm_values:
       - values.yaml

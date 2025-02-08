@@ -11,6 +11,6 @@ applications:
     source_ref: main
     enabled: true
     source_path: common/cadence
-    destination: default
+    destination: argocd
     helm_values:
       - ../../aws/dev/apps/cadence/values.yaml
