@@ -2,6 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cadence-frontend
+  namespace: {{ $.Values.namespace }}
   labels:
     app: cadence
     component: frontend
@@ -27,6 +28,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cadence-{{ $service }}-headless
+  namespace: {{ $.Values.namespace }}
   labels:
     app: cadence
     component: {{ $service }}

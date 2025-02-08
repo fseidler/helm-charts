@@ -2,6 +2,7 @@ apiVersion: batch/v1
 kind: Job
 metadata:
   name: cadence-schema-setup
+  namespace: {{ $.Values.namespace }}
   labels:
     {{- include "cadence.commonlabels" . | nindent 4 }}
 spec:

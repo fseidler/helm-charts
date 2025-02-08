@@ -1,3 +1,5 @@
+namespace: cadence
+
 log:
   stdout: true
   level: "debug"
