@@ -1,12 +1,13 @@
 # ArgoCD: projects-infra
 source: https://github.com/fseidler/helm-charts.git
+release: apps
 applications:
 # #################################################################
 #
 #  base-aws-dev
 #
 # #################################################################
-  - name: base-aws-dev-cadence
+  - name: aws-dev-cadence
     source_ref: main
     enabled: true
     source_path: common/cadence
